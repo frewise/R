@@ -24,11 +24,11 @@ mafReheader <- function(maf){
 
 	# maf.txt$Variant_Classification <- str_replace(maf.txt$Variant_Classification, "stoploss","Nonstop_Mutation")
 
-	maf.txt <- filter(maf.txt, Variant_Classification != "synonymous SNV")
+	maf <- filter(maf.txt, Variant_Classification != "synonymous SNV")
 
 
 
-	maf.txt$Variant_Classification %>%
+	maf$Variant_Classification %>%
 	  str_replace("\\bnonsynonymous SNV\\b","Missense_Mutation") %>% 
 	  str_replace("\\bnonframeshift deletion\\b","In_Frame_Del") %>% 
 	  str_replace("\\bnonframeshift insertion\\b","In_Frame_Ins") %>% 
