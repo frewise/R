@@ -1,5 +1,5 @@
 mafReheader <- function(maf){
-	
+	library(stringr)
 	# --------------------------- column replacement
 	colnames(maf)[1]="Chromosome"
 	colnames(maf)[2]="Start_Position"
@@ -12,14 +12,27 @@ mafReheader <- function(maf){
 
 	# --------------------------- variant classification replacement
 
-	maf[maf$Variant_Classification=="nonsynonymous SNV",]$Variant_Classification="Missense_Mutation"
-	maf[maf$Variant_Classification=="frameshift deletion",]$Variant_Classification="Frame_Shift_Del"
-	maf[maf$Variant_Classification=="frameshift insertion",]$Variant_Classification="Frame_Shift_Ins"
-	maf[maf$Variant_Classification=="nonframeshift deletion",]$Variant_Classification="In_Frame_Del"
-	maf[maf$Variant_Classification=="nonframeshift insertion",]$Variant_Classification="In_Frame_Ins"
-	maf[maf$Variant_Classification=="stopgain",]$Variant_Classification="Nonsense_Mutation"
-	maf[maf$Variant_Classification=="stoploss",]$Variant_Classification="Nonstop_Mutation"
-	maf[maf$Variant_Classification==".",]$Variant_Classification="Splice_Site"
+	# maf[maf$Variant_Classification=="nonsynonymous SNV",]$Variant_Classification="Missense_Mutation"
+	# maf[maf$Variant_Classification=="frameshift deletion",]$Variant_Classification="Frame_Shift_Del"
+	# maf[maf$Variant_Classification=="frameshift insertion",]$Variant_Classification="Frame_Shift_Ins"
+	# maf[maf$Variant_Classification=="nonframeshift deletion",]$Variant_Classification="In_Frame_Del"
+	# maf[maf$Variant_Classification=="nonframeshift insertion",]$Variant_Classification="In_Frame_Ins"
+	# maf[maf$Variant_Classification=="stopgain",]$Variant_Classification="Nonsense_Mutation"
+	# maf[maf$Variant_Classification=="stoploss",]$Variant_Classification="Nonstop_Mutation"
+	# maf[maf$Variant_Classification==".",]$Variant_Classification="Splice_Site"
+
+	# maf.txt$Variant_Classification <- str_replace(maf.txt$Variant_Classification, "stoploss","Nonstop_Mutation")
+
+	maf.txt$Variant_Classification %>%
+	  str_replace("nonsynonymous SNV","Missense_Mutation") 
+	  str_replace("frameshift deletion","Frame_Shift_Del") %>%
+	  str_replace("frameshift insertion","Frame_Shift_Ins") %>% 
+	  str_replace("nonframeshift deletion","In_Frame_Del") %>% 
+	  str_replace("nonframeshift insertion","In_Frame_Ins") %>% 
+	  str_replace("stopgain","Nonsense_Mutation") %>% 
+	  str_replace("stoploss","Nonstop_Mutation") %>% 
+	  str_replace(".","Splice_Site") %>%
+
 
 	return(maf)
 }
