@@ -1,5 +1,6 @@
 mafReheader <- function(maf){
 	library(stringr)
+	library(dplyr)
 	# --------------------------- column replacement
 	colnames(maf)[1]="Chromosome"
 	colnames(maf)[2]="Start_Position"
@@ -23,15 +24,19 @@ mafReheader <- function(maf){
 
 	# maf.txt$Variant_Classification <- str_replace(maf.txt$Variant_Classification, "stoploss","Nonstop_Mutation")
 
+	maf.txt <- filter(maf.txt, Variant_Classification != "synonymous SNV")
+
+
+
 	maf.txt$Variant_Classification %>%
-	  str_replace("nonsynonymous SNV","Missense_Mutation") 
-	  str_replace("frameshift deletion","Frame_Shift_Del") %>%
-	  str_replace("frameshift insertion","Frame_Shift_Ins") %>% 
-	  str_replace("nonframeshift deletion","In_Frame_Del") %>% 
-	  str_replace("nonframeshift insertion","In_Frame_Ins") %>% 
-	  str_replace("stopgain","Nonsense_Mutation") %>% 
-	  str_replace("stoploss","Nonstop_Mutation") %>% 
-	  str_replace(".","Splice_Site") %>%
+	  str_replace("\\bnonsynonymous SNV\\b","Missense_Mutation") %>% 
+	  str_replace("\\bnonframeshift deletion\\b","In_Frame_Del") %>% 
+	  str_replace("\\bnonframeshift insertion\\b","In_Frame_Ins") %>% 
+	  str_replace("\\bframeshift deletion\\b","Frame_Shift_Del") %>%
+	  str_replace("\\bframeshift insertion\\b","Frame_Shift_Ins") %>%
+	  str_replace("\\bstopgain\\b","Nonsense_Mutation") %>% 
+	  str_replace("\\bstoploss\\b","Nonstop_Mutation") %>% 
+	  str_replace('\\.',"Splice_Site")
 
 
 	return(maf)
