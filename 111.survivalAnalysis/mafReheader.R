@@ -28,7 +28,7 @@ mafReheader <- function(maf){
 
 
 
-	maf$Variant_Classification %>%
+	maf$Variant_Classification <- maf$Variant_Classification %>%
 	  str_replace("\\bnonsynonymous SNV\\b","Missense_Mutation") %>% 
 	  str_replace("\\bnonframeshift deletion\\b","In_Frame_Del") %>% 
 	  str_replace("\\bnonframeshift insertion\\b","In_Frame_Ins") %>% 
