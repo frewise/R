@@ -24,7 +24,7 @@ mafReheader <- function(maf){
 
 	# maf.txt$Variant_Classification <- str_replace(maf.txt$Variant_Classification, "stoploss","Nonstop_Mutation")
 
-	maf <- filter(maf.txt, Variant_Classification != "synonymous SNV")
+	maf <- filter(maf, Variant_Classification != "synonymous SNV")
 
 
 
