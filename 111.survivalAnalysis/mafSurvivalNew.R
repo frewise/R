@@ -44,12 +44,13 @@ mafReheader <- function(maf){
 	return(maf)
 }
 
-mafSurvival.new2<-function (maf, genes = NULL, samples = NULL, clinicalData = NULL, 
-                            time = "Time", Status = "Status", groupNames = c("Mutant", "WT"), 
-                            textSize = 12, fn = NULL, isPrint = TRUE,
-                            width = 12, height = 10,
-                            xlab = "Survival", ylab = "Time", pvalue = 0.05,
-                            legendTitle = "Genotype",isRiskTable = TRUE) 
+mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = NULL, 
+          time = "Time", Status = "Status", groupNames = c("Mutant", "WT"), 
+          textSize = 12, fn = NULL, isPrint = TRUE,
+          width = 12, height = 10,
+          xlab = "Survival", ylab = "Time", pvalue = 0.05,
+          legendTitle = "Genotype",isRiskTable = TRUE,
+          isUnion = TRUE) 
 {
   if(1){
     
@@ -95,8 +96,10 @@ mafSurvival.new2<-function (maf, genes = NULL, samples = NULL, clinicalData = NU
                                  justNames = TRUE)
       genesTSB = genesTSB[sapply(genesTSB, FUN = function(x) length(x) != 
                                    0)]
+      barcodeWmut = c()
       message("Number of mutated samples for given genes: ")
       print(sapply(genesTSB, FUN = length))
+      barcodeWmut = unique(as.character(unlist(genesTSB)))
       genesMissing = genes[!genes %in% names(genesTSB)]
       if (length(genesMissing) > 0) {
         genes = genes[!genes %in% genesMissing]
@@ -109,7 +112,13 @@ mafSurvival.new2<-function (maf, genes = NULL, samples = NULL, clinicalData = NU
       else {
         genes = paste(genes, collapse = ", ")
       }
-      genesTSB = unique(as.character(unlist(genesTSB)))
+      if(isUnion==TRUE){
+        genesTSB = unique(as.character(unlist(genesTSB)))
+        
+      }else{
+        genesTSB = Reduce(intersect, genesTSB)
+      }
+      
     }
     else {
       genesTSB = samples
@@ -117,8 +126,12 @@ mafSurvival.new2<-function (maf, genes = NULL, samples = NULL, clinicalData = NU
     data.table::setDT(clinicalData)
     clinicalData$Time = suppressWarnings(as.numeric(as.character(clinicalData$Time)))
     clinicalData$Status = suppressWarnings(as.integer(as.character(clinicalData$Status)))
-    clinicalData$Group = ifelse(test = clinicalData$Tumor_Sample_Barcode %in% 
-                                  genesTSB, yes = groupNames[1], no = groupNames[2])
+    clinicalData=mutate(clinicalData, Group="SingleMut")
+    clinicalData[clinicalData$Tumor_Sample_Barcode %in% genesTSB,]$Group = groupNames[1]
+    clinicalData[!(clinicalData$Tumor_Sample_Barcode %in% barcodeWmut),]$Group = groupNames[2]
+    data.table::setDT(clinicalData)
+    #clinicalData$Group = ifelse(test = clinicalData$Tumor_Sample_Barcode %in% 
+    #                              genesTSB, yes = groupNames[1], no = groupNames[2])
     clin.mut.dat = clinicalData[, .(medianTime = median(Time, 
                                                         na.rm = TRUE), N = .N), Group][order(Group)]
     #print(clinicalData)
@@ -166,8 +179,8 @@ mafSurvival.new2<-function (maf, genes = NULL, samples = NULL, clinicalData = NU
       surv.gg$plot = surv.gg$plot + 
         ggtitle(label = paste0(paste(genes, collapse="_"), " ", groupNames[1], " v/s ", groupNames[2]), 
                 subtitle = paste0("P-value: ", surv.diff.pval))
-    
-    
+      
+      
       if (!is.null(fn)) {
         ggsave(paste0(fn, ".pdf"), plot = print(surv.gg), height = height, width = width)
       }
