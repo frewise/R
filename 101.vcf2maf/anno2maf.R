@@ -5,9 +5,10 @@ update=c("1. Add tumor variant allele frequency",
          "4. Optionally select whether output filtered individuals",
          "5. Add NA test for conditions when there is not control sample (N.Freq is empty)",
          "6. Generate gene frequency file: gene.freq.txt",
-	 "7. Add population frequency filter')
+	     "7. Add population frequency filter"，
+	     "8. Add gDNA filter",
+	     "9. Add Func.refGene filter(not included in command line)")
 library('getopt')
-
 command=matrix(c("infile","i",1,"character",
 				"pon","p",1,"character",
                  "tfrequpper","t",1,"character",
@@ -15,6 +16,7 @@ command=matrix(c("infile","i",1,"character",
                  "tdp","d",1,"character",
                  "popfreq","f",1,"character",
                  "nfrequency","n",1,"character",
+                 "gDNA","g",1,"character",
                  "unknown","u",0,"logical",
                  "tmp","m",0,"logical",
                  "outfile","o",1,"character",
@@ -33,6 +35,7 @@ if (!is.null(args$help) || is.null(args$infile) || is.null(args$pon) || is.null(
   tdp=as.integer(args$tdp)#这里很奇怪，如果没有这一步转换，结果异常
   popfreq=ifelse(!is.null(args$popfreq),args$popfreq,1)#如果指定则使用指定值，如果不指定则取1
   nfrequency=ifelse(!is.null(args$nfrequency),args$nfrequency,1)#如果指定则使用指定值，如果不指定则取1
+  gDNA=ifelse(!is.null(args$gDNA),args$gDNA,100)#如果指定则使用指定值，如果不指定则取100
   infile=args$infile
   outfile=args$outfile
   cosmic<-c()
@@ -52,21 +55,24 @@ if (!is.null(args$help) || is.null(args$infile) || is.null(args$pon) || is.null(
                  t_vaf=character(),
                  stringsAsFactors=FALSE) 
   write.table(df,file=outfile,quote=FALSE,row.names = FALSE,sep="\t")
-
   #TMB
   tmb_out <- data.frame(patient=character(),
   						mtCNT=character(),
   						tmb=character(),
   						stringsAsFactors=FALSE)
   write.table(tmb_out,file="tmb.txt",quote=FALSE,row.names = FALSE,col.names = TRUE,sep="\t")
-
-
   for(i in list.files(".",pattern=paste("*.",infile,sep=""))){
   	cat("Processing",i,"...\n")
   	write.table(paste("Processing",i,"...\n"),file=logfile,append=TRUE,quote=FALSE,row.names = FALSE,col.names = FALSE)
 	  x<-read.table(i,sep="\t", quote="\"",header=TRUE, fill=TRUE, stringsAsFactors = FALSE)
 	  cat("  There are ",dim(x)[1],"mutations before filter","\n")
 	  write.table(paste("  There are ",dim(x)[1],"mutations before filter"),file=logfile,append=TRUE,quote=FALSE,row.names = FALSE,col.names = FALSE)
+          x<-x[x$Func.refGene=="exonic" | x$Func.refGene=="splicing",]
+          cat("  There are ",dim(x)[1],"mutations after filter Func.refGene","\n")
+          write.table(paste("  There are ",dim(x)[1],"mutations after filter Func.refGene"),file=logfile,append=TRUE,quote=FALSE,row.names = FALSE,col.names = FALSE)
+          x<-x[x$gDNA<=gDNA,]
+          cat("  There are ",dim(x)[1],"mutations after filter gDNA","\n")
+          write.table(paste("  There are ",dim(x)[1],"mutations after filter gDNA"),file=logfile,append=TRUE,quote=FALSE,row.names = FALSE,col.names = FALSE)
 	  x<-x[x$PoN<=pon,]
 	  cat("  There are ",dim(x)[1],"mutations after filter PoN","\n")
       write.table(paste("  There are ",dim(x)[1],"mutations after filter PoN"),file=logfile,append=TRUE,quote=FALSE,row.names = FALSE,col.names = FALSE)
