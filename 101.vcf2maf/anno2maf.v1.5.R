@@ -1,10 +1,11 @@
-ver=as.character("1.5")
+ver=as.character("1.6")
 update=c("1. Add tumor variant allele frequency",
          "2. remove unknown variants",
          "3. Add normal frequency filter",
          "4. Optionally select whether output filtered individuals",
          "5. Add NA test for conditions when there is not control sample (N.Freq is empty)",
-         "6. Generate gene frequency file: gene.freq.txt")
+         "6. Generate gene frequency file: gene.freq.txt",
+	 "7. Add population frequency filter')
 library('getopt')
 
 command=matrix(c("infile","i",1,"character",
@@ -12,6 +13,7 @@ command=matrix(c("infile","i",1,"character",
                  "tfrequpper","t",1,"character",
                  "tfreqlower","l",1,"character",
                  "tdp","d",1,"character",
+                 "popfreq","f",1,"character",
                  "nfrequency","n",1,"character",
                  "unknown","u",0,"logical",
                  "tmp","m",0,"logical",
@@ -29,6 +31,7 @@ if (!is.null(args$help) || is.null(args$infile) || is.null(args$pon) || is.null(
   tfrequpper=args$tfrequpper
   tfreqlower=args$tfreqlower
   tdp=as.integer(args$tdp)#这里很奇怪，如果没有这一步转换，结果异常
+  popfreq=ifelse(!is.null(args$popfreq),args$popfreq,1)#如果指定则使用指定值，如果不指定则取1
   nfrequency=ifelse(!is.null(args$nfrequency),args$nfrequency,1)#如果指定则使用指定值，如果不指定则取1
   infile=args$infile
   outfile=args$outfile
@@ -73,6 +76,10 @@ if (!is.null(args$help) || is.null(args$infile) || is.null(args$pon) || is.null(
 	  x<-x[x$T.DP>=tdp,]
 	  cat("  There are ",dim(x)[1],"mutations after filter T.DP","\n")
 	  write.table(paste("  There are ",dim(x)[1],"mutations after filter T.DP"),file=logfile,append=TRUE,quote=FALSE,row.names = FALSE,col.names = FALSE)
+    
+          x<-x[x$PopFreqMax <= popfreq,]
+          cat("  There are ",dim(x)[1],"mutations after filter popfreq","\n")
+          write.table(paste("  There are ",dim(x)[1],"mutations after filter popfreq"),file=logfile,append=TRUE,quote=FALSE,row.names = FALSE,col.names = FALSE)
     x<-x[x$N.Freq<=nfrequency|is.na(x$N.Freq),]
     cat("  There are ",dim(x)[1],"mutations after filter N.Freq","\n")
     write.table(paste("  There are ",dim(x)[1],"mutations after filter N.Freq"),file=logfile,append=TRUE,quote=FALSE,row.names = FALSE,col.names = FALSE)
