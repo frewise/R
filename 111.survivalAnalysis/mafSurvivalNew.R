@@ -50,7 +50,8 @@ mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = 
           width = 12, height = 10,
           xlab = "Survival", ylab = "Time", pvalue = 0.05,
           legendTitle = "Genotype",isRiskTable = TRUE,
-          isUnion = TRUE) 
+          isUnion = TRUE,
+          verbose = TRUE) 
 {
   if(1){
     
@@ -61,19 +62,19 @@ mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = 
       stop("Either provide Gene names or Sample names to group by. Not both!")
     }
     if (is.null(clinicalData)) {
-      print(clinicalData)
+      if(verbose) print(clinicalData)
       message("Looking for clinical data in annoatation slot of MAF..")
       clinicalData = getClinicalData(x = maf)
       clinicalData = data.table::setDT(clinicalData)
       #print(clinicalData)
     }
     if (!"Tumor_Sample_Barcode" %in% colnames(clinicalData)) {
-      print(colnames(clinicalData))
+      if(verbose) print(colnames(clinicalData))
       stop("Column Tumo_Sample_Barcode not found in clinical data. Check column names and rename it to Tumo_Sample_Barcode if necessary.")
     }
     if (length(colnames(clinicalData)[colnames(clinicalData) %in% 
                                       time]) == 0) {
-      print(colnames(clinicalData))
+      if(verbose) print(colnames(clinicalData))
       stop(paste0(time, " not found in clinicalData. Use argument time to povide column name containing time to event."))
     }
     else {
@@ -83,7 +84,7 @@ mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = 
     }
     if (length(colnames(clinicalData)[colnames(clinicalData) %in% 
                                       Status]) == 0) {
-      print(colnames(clinicalData))
+      if(verbose) print(colnames(clinicalData))
       stop(paste0(Status, " not found in clinicalData. Use argument Status to povide column name containing events (Dead or Alive)."))
     }
     else {
@@ -98,7 +99,7 @@ mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = 
                                    0)]
       barcodeWmut = c()
       message("Number of mutated samples for given genes: ")
-      print(sapply(genesTSB, FUN = length))
+      if(verbose) print(sapply(genesTSB, FUN = length))
       barcodeWmut = unique(as.character(unlist(genesTSB)))
       genesMissing = genes[!genes %in% names(genesTSB)]
       if (length(genesMissing) > 0) {
@@ -136,7 +137,7 @@ mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = 
                                                         na.rm = TRUE), N = .N), Group][order(Group)]
     #print(clinicalData)
     message("Median survival..")
-    print(clin.mut.dat)
+    if(verbose) print(clin.mut.dat)
     clinicalData$Time = ifelse(test = is.infinite(clinicalData$Time), 
                                yes = 0, no = clinicalData$Time)
     surv.km = survival::survfit(formula = survival::Surv(time = Time, 
@@ -197,11 +198,12 @@ mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = 
                Mut_case=clin.mut.dat$N[clin.mut.dat$Group=="Mutant"],
                WT_case=clin.mut.dat$N[clin.mut.dat$Group=="WT"])
     #write.table(clinicalData,file="")
-	#  if (!require("openxlsx")) install.packages("openxlsx")
-	#if (!dir.exists("data_output/")) {
-  	#	dir.create("data_output/")
-	#}
-	#write.xlsx(clinicalData, paste0(fn,".xlsx"))
+    #  if (!require("openxlsx")) install.packages("openxlsx")
+    #if (!dir.exists("data_output/")) {
+    #	dir.create("data_output/")
+    #}
+    #write.xlsx(clinicalData, paste0(fn,".xlsx"))
   }
   
 }
+
