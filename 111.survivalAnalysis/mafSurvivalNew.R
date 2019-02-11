@@ -201,7 +201,7 @@ mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = 
 	#if (!dir.exists("data_output/")) {
   	#	dir.create("data_output/")
 	#}
-	write.xlsx(clinicalData, paste0(fn,".xlsx"))
+	#write.xlsx(clinicalData, paste0(fn,".xlsx"))
   }
   
 }
