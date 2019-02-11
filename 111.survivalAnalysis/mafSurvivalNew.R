@@ -197,6 +197,8 @@ mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = 
                Mut_case=clin.mut.dat$N[clin.mut.dat$Group=="Mutant"],
                WT_case=clin.mut.dat$N[clin.mut.dat$Group=="WT"])
     #write.table(clinicalData,file="")
+	  if (!require("openxlsx")) install.packages("openxlsx")
+	write.xlsx(clinicalData, paste0("data_output/",fn,".xlsx"))
   }
   
 }
