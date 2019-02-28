@@ -322,3 +322,221 @@ forestPlot.2<-function (mafCompareRes, pVal = 0.05, fdr = NULL, color = NULL,
   }
 }
 
+validateMaf.2<-function (maf, rdup = TRUE, isTCGA = isTCGA, chatty = TRUE) 
+{
+  required.fields = c("Hugo_Symbol", "Chromosome", "Start_Position", 
+                      "End_Position", "Reference_Allele", "Tumor_Seq_Allele2", 
+                      "Variant_Classification", "Variant_Type", "Tumor_Sample_Barcode")
+  for (i in 1:length(required.fields)) {
+    colId = suppressWarnings(grep(pattern = paste("^", required.fields[i], 
+                                                  "$", sep = ""), x = colnames(maf), ignore.case = TRUE))
+    if (length(colId) > 0) {
+      colnames(maf)[colId] = required.fields[i]
+    }
+  }
+  missing.fileds = required.fields[!required.fields %in% colnames(maf)]
+  if (length(missing.fileds) > 0) {
+    missing.fileds = paste(missing.fileds[1], sep = ",", 
+                           collapse = ", ")
+    stop(paste("missing required fields from MAF:", missing.fileds))
+  }
+  if (rdup) {
+    maf = maf[, `:=`(variantId, paste(Chromosome, Start_Position, 
+                                      Tumor_Sample_Barcode, sep = ":"))]
+    if (nrow(maf[duplicated(variantId)]) > 0) {
+      if (chatty) {
+        message("NOTE: Removed ", nrow(maf[duplicated(variantId)]), 
+                " duplicated variants")
+      }
+      maf = maf[!duplicated(variantId)]
+    }
+    maf[, `:=`(variantId, NULL)]
+  }
+  if (nrow(maf[Hugo_Symbol %in% ""]) > 0) {
+    if (chatty) {
+      message("NOTE: Found ", nrow(maf[Hugo_Symbol %in% 
+                                         ""]), " variants with no Gene Symbols.")
+      print(maf[Hugo_Symbol %in% "", required.fields, 
+                with = FALSE])
+      message("Annotating them as 'UnknownGene' for convenience")
+    }
+    maf$Hugo_Symbol = ifelse(test = maf$Hugo_Symbol == "", 
+                             yes = "UnknownGene", no = maf$Hugo_Symbol)
+  }
+  if (nrow(maf[is.na(Hugo_Symbol)]) > 0) {
+    if (chatty) {
+      message("NOTE: Found ", nrow(maf[is.na(Hugo_Symbol) > 
+                                         0]), " variants with no Gene Symbols.")
+      print(maf[is.na(Hugo_Symbol), required.fields, with = FALSE])
+      message("Annotating them as 'UnknownGene' for convenience")
+    }
+    maf$Hugo_Symbol = ifelse(test = is.na(maf$Hugo_Symbol), 
+                             yes = "UnknownGene", no = maf$Hugo_Symbol)
+  }
+  if (isTCGA) {
+    maf$Tumor_Sample_Barcode = substr(x = maf$Tumor_Sample_Barcode, 
+                                      start = 1, stop = 12)
+  }
+  silent = c("3'UTR", "5'UTR", "3'Flank", "Targeted_Region", 
+             "Silent", "Intron", "RNA", "IGR", "Splice_Region", "5'Flank", 
+             "lincRNA", "De_novo_Start_InFrame", "De_novo_Start_OutOfFrame", 
+             "Start_Codon_Ins", "Start_Codon_SNP", "Stop_Codon_Del")
+  vc.nonSilent = c("Frame_Shift_Del", "Frame_Shift_Ins", "Splice_Site", 
+                   "Translation_Start_Site", "Nonsense_Mutation", "Nonstop_Mutation", 
+                   "In_Frame_Del", "In_Frame_Ins", "Missense_Mutation")
+  vt = c("SNP", "DNP", "TNP", "ONP", "INS", "DEL")
+  maf.vcs = unique(as.character(maf[, Variant_Classification]))
+  maf.vts = unique(as.character(maf[, Variant_Type]))
+  if (length(maf.vcs[!maf.vcs %in% c(silent, vc.nonSilent)] > 
+             0)) {
+    message("NOTE: Non MAF specific values in Variant_Classification column:")
+    #print(maf.vcs[!maf.vcs %in% c(silent, vc.nonSilent)])
+  }
+  if (length(maf.vts[!maf.vts %in% vt] > 0)) {
+    message("NOTE: Non MAF specific values in Variant_Type column:")
+    #print(maf.vts[!maf.vts %in% vt])
+  }
+  maf$Tumor_Sample_Barcode = as.factor(maf$Tumor_Sample_Barcode)
+  return(maf)
+}
+
+
+
+read.maf.2<-function (maf, clinicalData = NULL, removeDuplicatedVariants = TRUE, 
+          useAll = TRUE, gisticAllLesionsFile = NULL, gisticAmpGenesFile = NULL, 
+          gisticDelGenesFile = NULL, gisticScoresFile = NULL, cnLevel = "all", 
+          cnTable = NULL, isTCGA = FALSE, vc_nonSyn = NULL, verbose = TRUE) 
+{
+  if (is.data.frame(x = maf)) {
+    maf = data.table::setDT(maf)
+  }
+  else {
+    if (verbose) {
+      message("reading maf..")
+    }
+    if (as.logical(length(grep(pattern = "gz$", x = maf, 
+                               fixed = FALSE)))) {
+      if (Sys.info()[["sysname"]] == "Windows") {
+        maf.gz = gzfile(description = maf, open = "r")
+        suppressWarnings(maf <- data.table::as.data.table(read.csv(file = maf.gz, 
+                                                                   header = TRUE, sep = "\t", stringsAsFactors = FALSE, 
+                                                                   comment.char = "#")))
+        close(maf.gz)
+      }
+      else {
+        maf = suppressWarnings(data.table::fread(input = paste("zcat <", 
+                                                               maf), sep = "\t", stringsAsFactors = FALSE, 
+                                                 verbose = FALSE, data.table = TRUE, showProgress = TRUE, 
+                                                 header = TRUE, fill = TRUE, skip = "Hugo_Symbol"))
+      }
+    }
+    else {
+      suppressWarnings(maf <- data.table::fread(input = maf, 
+                                                sep = "\t", stringsAsFactors = FALSE, verbose = FALSE, 
+                                                data.table = TRUE, showProgress = TRUE, header = TRUE, 
+                                                fill = TRUE, skip = "Hugo_Symbol"))
+    }
+  }
+  maf = validateMaf.2(maf = maf, isTCGA = isTCGA, rdup = removeDuplicatedVariants, 
+                    chatty = verbose)
+  if (!useAll) {
+    message("--Using only `Somatic` variants from Mutation_Status. Set useAll = TRUE to include everything.")
+    if (length(colnames(maf)[colnames(x = maf) %in% "Mutation_Status"]) > 
+        0) {
+      maf = maf[Mutation_Status %in% "Somatic"]
+      if (nrow(maf) == 0) {
+        stop("No more Somatic mutations left after filtering for Mutation_Status! Maybe set useAll to TRUE ?")
+      }
+    }
+    else {
+      message("---Oops! Mutation_Status not found. Assuming all variants are Somatic and validated.")
+    }
+  }
+  if (is.null(vc_nonSyn)) {
+    vc.nonSilent = c("Frame_Shift_Del", "Frame_Shift_Ins", 
+                     "Splice_Site", "Translation_Start_Site", "Nonsense_Mutation", 
+                     "Nonstop_Mutation", "In_Frame_Del", "In_Frame_Ins", 
+                     "Missense_Mutation")
+  }
+  else {
+    vc.nonSilent = vc_nonSyn
+  }
+  maf.silent = maf[!Variant_Classification %in% vc.nonSilent]
+  if (nrow(maf.silent) > 0) {
+    maf.silent.vc = maf.silent[, .N, .(Tumor_Sample_Barcode, 
+                                       Variant_Classification)]
+    maf.silent.vc.cast = data.table::dcast(data = maf.silent.vc, 
+                                           formula = Tumor_Sample_Barcode ~ Variant_Classification, 
+                                           fill = 0, value.var = "N")
+    summary.silent = data.table::data.table(ID = c("Samples", 
+                                                   colnames(maf.silent.vc.cast)[2:ncol(maf.silent.vc.cast)]), 
+                                            N = c(nrow(maf.silent.vc.cast), colSums(maf.silent.vc.cast[, 
+                                                                                                       2:ncol(maf.silent.vc.cast), with = FALSE])))
+    maf = maf[Variant_Classification %in% vc.nonSilent]
+    if (verbose) {
+      message(paste0("silent variants: ", nrow(maf.silent)))
+      print(summary.silent)
+    }
+  }
+  if (nrow(maf) == 0) {
+    stop("No non-synonymous mutations found\nCheck `vc_nonSyn`` argumet in `read.maf` for details")
+  }
+  if (!is.null(gisticAllLesionsFile)) {
+    gisticIp = readGistic(gisticAllLesionsFile = gisticAllLesionsFile, 
+                          gisticAmpGenesFile = gisticAmpGenesFile, gisticDelGenesFile = gisticDelGenesFile, 
+                          isTCGA = isTCGA, gisticScoresFile = gisticScoresFile, 
+                          cnLevel = cnLevel)
+    gisticIp = gisticIp@data
+    suppressWarnings(gisticIp[, `:=`(id, paste(Hugo_Symbol, 
+                                               Tumor_Sample_Barcode, sep = ":"))])
+    gisticIp = gisticIp[!duplicated(id)]
+    gisticIp[, `:=`(id, NULL)]
+    maf = rbind(maf, gisticIp, fill = TRUE)
+    maf$Tumor_Sample_barcode = factor(x = maf$Tumor_Sample_barcode, 
+                                      levels = unique(c(levels(maf$Tumor_Sample_barcode), 
+                                                        unique(as.character(gisticIp$Tumor_Sample_barcode)))))
+  }
+  else if (!is.null(cnTable)) {
+    if (verbose) {
+      message("Processing copy number data..")
+    }
+    if (is.data.frame(cnTable)) {
+      cnDat = data.table::setDT(cnTable)
+    }
+    else {
+      cnDat = data.table::fread(input = cnTable, sep = "\t", 
+                                stringsAsFactors = FALSE, header = TRUE, colClasses = "character")
+    }
+    colnames(cnDat) = c("Hugo_Symbol", "Tumor_Sample_Barcode", 
+                        "Variant_Classification")
+    if (isTCGA) {
+      cnDat[, `:=`(Tumor_Sample_Barcode, substr(x = cnDat$Tumor_Sample_Barcode, 
+                                                start = 1, stop = 12))]
+    }
+    cnDat$Variant_Type = "CNV"
+    suppressWarnings(cnDat[, `:=`(id, paste(Hugo_Symbol, 
+                                            Tumor_Sample_Barcode, sep = ":"))])
+    cnDat = cnDat[!duplicated(id)]
+    cnDat[, `:=`(id, NULL)]
+    maf = rbind(maf, cnDat, fill = TRUE)
+    maf$Tumor_Sample_barcode = factor(x = maf$Tumor_Sample_barcode, 
+                                      levels = unique(c(levels(maf$Tumor_Sample_barcode), 
+                                                        unique(as.character(cnDat$Tumor_Sample_barcode)))))
+  }
+  maf$Variant_Classification = as.factor(as.character(maf$Variant_Classification))
+  maf$Variant_Type = as.factor(as.character(maf$Variant_Type))
+  if (verbose) {
+    message("Summarizing..")
+  }
+  mafSummary = maftools:::summarizeMaf(maf = maf, anno = clinicalData, 
+                            chatty = verbose)
+  m = maftools:::MAF(data = maf, variants.per.sample = mafSummary$variants.per.sample, 
+          variant.type.summary = mafSummary$variant.type.summary, 
+          variant.classification.summary = mafSummary$variant.classification.summary, 
+          gene.summary = mafSummary$gene.summary, summary = mafSummary$summary, 
+          maf.silent = maf.silent, clinical.data = mafSummary$sample.anno)
+  if (verbose) {
+    message("Done !")
+  }
+  return(m)
+}
