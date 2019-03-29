@@ -1,57 +1,57 @@
 library(maftools)
 
 mafReheader <- function(maf){
-	library(stringr)
-	library(dplyr)
-	# --------------------------- column replacement
-	colnames(maf)[1]="Chromosome"
-	colnames(maf)[2]="Start_Position"
-	colnames(maf)[3]="End_Position"
-	colnames(maf)[4]="Reference_Allele"
-	colnames(maf)[5]="Tumor_Seq_Allele2"
-	colnames(maf)[6]="Hugo_Symbol"
-	colnames(maf)[8]="Variant_Classification"
-	colnames(maf)[11]="Variant_Type"
-
-	# --------------------------- variant classification replacement
-
-	# maf[maf$Variant_Classification=="nonsynonymous SNV",]$Variant_Classification="Missense_Mutation"
-	# maf[maf$Variant_Classification=="frameshift deletion",]$Variant_Classification="Frame_Shift_Del"
-	# maf[maf$Variant_Classification=="frameshift insertion",]$Variant_Classification="Frame_Shift_Ins"
-	# maf[maf$Variant_Classification=="nonframeshift deletion",]$Variant_Classification="In_Frame_Del"
-	# maf[maf$Variant_Classification=="nonframeshift insertion",]$Variant_Classification="In_Frame_Ins"
-	# maf[maf$Variant_Classification=="stopgain",]$Variant_Classification="Nonsense_Mutation"
-	# maf[maf$Variant_Classification=="stoploss",]$Variant_Classification="Nonstop_Mutation"
-	# maf[maf$Variant_Classification==".",]$Variant_Classification="Splice_Site"
-
-	# maf.txt$Variant_Classification <- str_replace(maf.txt$Variant_Classification, "stoploss","Nonstop_Mutation")
-
-	maf <- filter(maf, Variant_Classification != "synonymous SNV")
-
-
-
-	maf$Variant_Classification <- maf$Variant_Classification %>%
-	  str_replace("\\bnonsynonymous SNV\\b","Missense_Mutation") %>% 
-	  str_replace("\\bnonframeshift deletion\\b","In_Frame_Del") %>% 
-	  str_replace("\\bnonframeshift insertion\\b","In_Frame_Ins") %>% 
-	  str_replace("\\bframeshift deletion\\b","Frame_Shift_Del") %>%
-	  str_replace("\\bframeshift insertion\\b","Frame_Shift_Ins") %>%
-	  str_replace("\\bstopgain\\b","Nonsense_Mutation") %>% 
-	  str_replace("\\bstoploss\\b","Nonstop_Mutation") %>% 
-	  str_replace('\\.',"Splice_Site")
-
-
-	return(maf)
+  library(stringr)
+  library(dplyr)
+  # --------------------------- column replacement
+  colnames(maf)[1]="Chromosome"
+  colnames(maf)[2]="Start_Position"
+  colnames(maf)[3]="End_Position"
+  colnames(maf)[4]="Reference_Allele"
+  colnames(maf)[5]="Tumor_Seq_Allele2"
+  colnames(maf)[6]="Hugo_Symbol"
+  colnames(maf)[8]="Variant_Classification"
+  colnames(maf)[11]="Variant_Type"
+  
+  # --------------------------- variant classification replacement
+  
+  # maf[maf$Variant_Classification=="nonsynonymous SNV",]$Variant_Classification="Missense_Mutation"
+  # maf[maf$Variant_Classification=="frameshift deletion",]$Variant_Classification="Frame_Shift_Del"
+  # maf[maf$Variant_Classification=="frameshift insertion",]$Variant_Classification="Frame_Shift_Ins"
+  # maf[maf$Variant_Classification=="nonframeshift deletion",]$Variant_Classification="In_Frame_Del"
+  # maf[maf$Variant_Classification=="nonframeshift insertion",]$Variant_Classification="In_Frame_Ins"
+  # maf[maf$Variant_Classification=="stopgain",]$Variant_Classification="Nonsense_Mutation"
+  # maf[maf$Variant_Classification=="stoploss",]$Variant_Classification="Nonstop_Mutation"
+  # maf[maf$Variant_Classification==".",]$Variant_Classification="Splice_Site"
+  
+  # maf.txt$Variant_Classification <- str_replace(maf.txt$Variant_Classification, "stoploss","Nonstop_Mutation")
+  
+  maf <- filter(maf, Variant_Classification != "synonymous SNV")
+  
+  
+  
+  maf$Variant_Classification <- maf$Variant_Classification %>%
+    str_replace("\\bnonsynonymous SNV\\b","Missense_Mutation") %>% 
+    str_replace("\\bnonframeshift deletion\\b","In_Frame_Del") %>% 
+    str_replace("\\bnonframeshift insertion\\b","In_Frame_Ins") %>% 
+    str_replace("\\bframeshift deletion\\b","Frame_Shift_Del") %>%
+    str_replace("\\bframeshift insertion\\b","Frame_Shift_Ins") %>%
+    str_replace("\\bstopgain\\b","Nonsense_Mutation") %>% 
+    str_replace("\\bstoploss\\b","Nonstop_Mutation") %>% 
+    str_replace('\\.',"Splice_Site")
+  
+  
+  return(maf)
 }
 
 mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = NULL, 
-          time = "Time", Status = "Status", groupNames = c("Mutant", "WT"), 
-          textSize = 12, fn = NULL, isPrint = TRUE,
-          width = 12, height = 10,
-          xlab = "Survival", ylab = "Time", pvalue = 0.05,
-          legendTitle = "Genotype",isRiskTable = TRUE,
-          isUnion = TRUE,
-          verbose = TRUE) 
+                              time = "Time", Status = "Status", groupNames = c("Mutant", "WT"), 
+                              textSize = 12, fn = NULL, isPrint = TRUE,
+                              width = 12, height = 10,
+                              xlab = "Survival", ylab = "Time", pvalue = 0.05,
+                              legendTitle = "Genotype",isRiskTable = TRUE,
+                              isUnion = TRUE,
+                              verbose = TRUE) 
 {
   if(1){
     
@@ -117,6 +117,8 @@ mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = 
         genesTSB = unique(as.character(unlist(genesTSB)))
         
       }else{
+        gene1Samples = setdiff(genesTSB[1],Reduce(intersect, genesTSB))
+        gene2Samples = setdiff(genesTSB[2],Reduce(intersect, genesTSB))
         genesTSB = Reduce(intersect, genesTSB)
       }
       
@@ -128,7 +130,9 @@ mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = 
     clinicalData$Time = suppressWarnings(as.numeric(as.character(clinicalData$Time)))
     clinicalData$Status = suppressWarnings(as.integer(as.character(clinicalData$Status)))
     clinicalData=mutate(clinicalData, Group="SingleMut")
-    clinicalData[clinicalData$Tumor_Sample_Barcode %in% genesTSB,]$Group = groupNames[1]
+    clinicalData[clinicalData$Tumor_Sample_Barcode %in% gene1Samples[[1]],]$Group = paste0(strsplit(genes, ", ")[[1]][1], "-singleMut")
+    clinicalData[clinicalData$Tumor_Sample_Barcode %in% gene2Samples[[1]],]$Group = paste0(strsplit(genes, ", ")[[1]][2], "-singleMut")
+    clinicalData[clinicalData$Tumor_Sample_Barcode %in% genesTSB,]$Group = paste0("doulbe-",groupNames[1])
     clinicalData[!(clinicalData$Tumor_Sample_Barcode %in% barcodeWmut),]$Group = groupNames[2]
     data.table::setDT(clinicalData)
     #clinicalData$Group = ifelse(test = clinicalData$Tumor_Sample_Barcode %in% 
@@ -192,11 +196,11 @@ mafSurvival.new2 <- function (maf, genes = NULL, samples = NULL, clinicalData = 
     #print(clin.mut.dat[[1]])
     #print(clin.mut.dat[[2]])
     #print(clin.mut.dat[[3]])
-    data.frame(gene=genes,pvalue=surv.diff.pval,
-               Mut_median=clin.mut.dat$medianTime[clin.mut.dat$Group=="Mutant"],
-               WT_median=clin.mut.dat$medianTime[clin.mut.dat$Group=="WT"],
-               Mut_case=clin.mut.dat$N[clin.mut.dat$Group=="Mutant"],
-               WT_case=clin.mut.dat$N[clin.mut.dat$Group=="WT"])
+    # data.frame(gene=genes,pvalue=surv.diff.pval,
+    #            Mut_median=clin.mut.dat$medianTime[clin.mut.dat$Group=="Mutant"],
+    #            WT_median=clin.mut.dat$medianTime[clin.mut.dat$Group=="WT"],
+    #            Mut_case=clin.mut.dat$N[clin.mut.dat$Group=="Mutant"],
+    #            WT_case=clin.mut.dat$N[clin.mut.dat$Group=="WT"])
     #write.table(clinicalData,file="")
     #  if (!require("openxlsx")) install.packages("openxlsx")
     #if (!dir.exists("data_output/")) {
@@ -222,8 +226,8 @@ fisherCorrection = function(fc){
 
 
 forestPlot.2<-function (mafCompareRes, pVal = 0.05, fdr = NULL, color = NULL, 
-          geneFontSize = 1.2, titleSize = 1.2, lineWidth = 2.2, file = NULL, 
-          width = 5, height = 6) 
+                        geneFontSize = 1.2, titleSize = 1.2, lineWidth = 2.2, file = NULL, 
+                        width = 5, height = 6) 
 {
   res = mafCompareRes$results
   if (is.null(fdr)) {
@@ -289,14 +293,14 @@ forestPlot.2<-function (mafCompareRes, pVal = 0.05, fdr = NULL, color = NULL,
        axes = FALSE, pch = NA, xlab = "", ylab = "", ylim = c(0.5, 
                                                               nrow(m.sigs)))
   text(x = 0.5, y = 1:nrow(m.sigs), labels = unlist(m.sigs[, 
-                                                                      2]), adj = 0, font = 2, cex = 1.4 * (geneFontSize))
+                                                           2]), adj = 0, font = 2, cex = 1.4 * (geneFontSize))
   title(main = m1Name, cex.main = titleSize)
   par(mar = c(3, 0, 3, 0))
   plot(rep(0, nrow(m.sigs)), 1:nrow(m.sigs), xlim = c(0, 1), 
        axes = FALSE, pch = NA, xlab = "", ylab = "", ylim = c(0.5, 
                                                               nrow(m.sigs)))
   text(x = 0.5, y = 1:nrow(m.sigs), labels = unlist(m.sigs[, 
-                                                                      3]), adj = 0, font = 2, cex = 1.4 * (geneFontSize))
+                                                           3]), adj = 0, font = 2, cex = 1.4 * (geneFontSize))
   title(main = m2Name, cex.main = titleSize)
   m.sigs$significance = ifelse(test = as.numeric(m.sigs$pval) < 
                                  0.001, yes = "***", no = ifelse(test = as.numeric(m.sigs$pval) < 
@@ -403,9 +407,9 @@ validateMaf.2<-function (maf, rdup = TRUE, isTCGA = isTCGA, chatty = TRUE)
 
 
 read.maf.2<-function (maf, clinicalData = NULL, removeDuplicatedVariants = TRUE, 
-          useAll = TRUE, gisticAllLesionsFile = NULL, gisticAmpGenesFile = NULL, 
-          gisticDelGenesFile = NULL, gisticScoresFile = NULL, cnLevel = "all", 
-          cnTable = NULL, isTCGA = FALSE, vc_nonSyn = NULL, verbose = TRUE) 
+                      useAll = TRUE, gisticAllLesionsFile = NULL, gisticAmpGenesFile = NULL, 
+                      gisticDelGenesFile = NULL, gisticScoresFile = NULL, cnLevel = "all", 
+                      cnTable = NULL, isTCGA = FALSE, vc_nonSyn = NULL, verbose = TRUE) 
 {
   if (is.data.frame(x = maf)) {
     maf = data.table::setDT(maf)
@@ -438,7 +442,7 @@ read.maf.2<-function (maf, clinicalData = NULL, removeDuplicatedVariants = TRUE,
     }
   }
   maf = validateMaf.2(maf = maf, isTCGA = isTCGA, rdup = removeDuplicatedVariants, 
-                    chatty = verbose)
+                      chatty = verbose)
   if (!useAll) {
     message("--Using only `Somatic` variants from Mutation_Status. Set useAll = TRUE to include everything.")
     if (length(colnames(maf)[colnames(x = maf) %in% "Mutation_Status"]) > 
@@ -529,12 +533,12 @@ read.maf.2<-function (maf, clinicalData = NULL, removeDuplicatedVariants = TRUE,
     message("Summarizing..")
   }
   mafSummary = maftools:::summarizeMaf(maf = maf, anno = clinicalData, 
-                            chatty = verbose)
+                                       chatty = verbose)
   m = maftools:::MAF(data = maf, variants.per.sample = mafSummary$variants.per.sample, 
-          variant.type.summary = mafSummary$variant.type.summary, 
-          variant.classification.summary = mafSummary$variant.classification.summary, 
-          gene.summary = mafSummary$gene.summary, summary = mafSummary$summary, 
-          maf.silent = maf.silent, clinical.data = mafSummary$sample.anno)
+                     variant.type.summary = mafSummary$variant.type.summary, 
+                     variant.classification.summary = mafSummary$variant.classification.summary, 
+                     gene.summary = mafSummary$gene.summary, summary = mafSummary$summary, 
+                     maf.silent = maf.silent, clinical.data = mafSummary$sample.anno)
   if (verbose) {
     message("Done !")
   }
